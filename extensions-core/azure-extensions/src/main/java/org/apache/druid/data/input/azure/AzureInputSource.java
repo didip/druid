@@ -62,10 +62,6 @@ public class AzureInputSource extends CloudObjectInputSource
   private final AzureCloudBlobHolderToCloudObjectLocationConverter azureCloudBlobToLocationConverter;
   private final AzureInputDataConfig inputDataConfig;
 
-  public static Iterable<CloudBlobHolder> iteratorToIterable(Iterator<CloudBlobHolder> iterator) {
-    return () -> iterator;
-  }
-
   @JsonCreator
   public AzureInputSource(
       @JacksonInject AzureStorage storage,
@@ -132,17 +128,19 @@ public class AzureInputSource extends CloudObjectInputSource
 
   private Iterable<CloudBlobHolder> getIterableObjectsFromPrefixes()
   {
-    Iterator<CloudBlobHolder> iterator = azureCloudBlobIterableFactory.create(getPrefixes(), inputDataConfig.getMaxListingLength()).iterator();
+    return () -> {
+      Iterator<CloudBlobHolder> iterator = azureCloudBlobIterableFactory.create(getPrefixes(), inputDataConfig.getMaxListingLength()).iterator();
 
-    // Skip files that didn't match filter.
-    if (StringUtils.isNotBlank(getFilter())) {
-      iterator = Iterators.filter(
-          iterator,
-          object -> FilenameUtils.wildcardMatch(object.getName(), getFilter())
-      );
-    }
+      // Skip files that didn't match filter.
+      if (StringUtils.isNotBlank(getFilter())) {
+        iterator = Iterators.filter(
+            iterator,
+            object -> FilenameUtils.wildcardMatch(object.getName(), getFilter())
+        );
+      }
 
-    return iteratorToIterable(iterator);
+      return iterator;
+    };
   }
 
   @Override
